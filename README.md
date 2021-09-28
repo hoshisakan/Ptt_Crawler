@@ -1,6 +1,8 @@
 # Ptt_Crawler
 ## 結合 BeautifulSoup4 與 requests 之 Python 套件撈取 ptt 文章與下載其圖片
-![alt text](https://i.imgur.com/geyplre.gif)
+
+![alt text](https://imgur.com/j6pZ7kc.png)
+![alt text](https://imgur.com/CxWHdEx.png)
 
 ## 教學
 ### 套件安裝
@@ -69,25 +71,6 @@ Article_Search_Page_Limit=09-28
 ![alt text](https://imgur.com/rBuXcZt.png)
 ![alt text](https://imgur.com/uuS1lP1.png)
 
-> 這裡以 Page 模式為演示範例，以指定的頁數搜尋 Baseball 版上匹配的文章資訊與下載其圖片
-### 執行畫面
->如果該篇文章不存在任何圖片的連結，Log 輸出會以 Error 顯示該文章並不存在圖片
-
-![alt text](https://imgur.com/L2RsFCq.png)
-![alt text](https://imgur.com/3l1oELp.png)
-![alt text](https://imgur.com/IE3E448.png)
-![alt text](https://imgur.com/JvR9avX.png)
-
-### 輸出資料夾
-![alt text](https://imgur.com/t8ZjdBn.png)
-![alt text](https://imgur.com/6OMBD2Q.png)
-
-### 輸出 csv
-![alt text](https://imgur.com/guPk2ga.png)
-![alt text](https://imgur.com/kePLULX.png)
-![alt text](https://imgur.com/NMVUpNF.png)
-
-
 ### 將 python 打包成一個 .exe 的可執行檔
 > 打包的 python 檔是 [crawler_google_search.py](https://github.com/hoshisakan/Google_Search_Crawler/blob/main/crawler_google_search.py) 這個檔案，而非 [crawler_google_search_args.py](https://github.com/hoshisakan/Google_Search_Crawler/blob/main/crawler_google_search_args.py)，這點要特別注意
 * 打包時請注意你的 python 環境是乾淨的，避免製作執行檔時將不必要的套件一同匯入，建議使用 [virtualenv](https://pypi.org/project/virtualenv/) 與 [virtualenvwrapper-win](https://pypi.org/project/virtualenvwrapper-win/) 將爬蟲的開發環境區別開來
@@ -125,20 +108,23 @@ pyinstaller.exe --specpath ./execute/ --distpath ./execute/dist --workpath ./exe
 
 * 實際測試執行檔
 
-> 這裡以 Page 模式為演示範例，以關鍵字搜尋 Beauty 版上匹配的文章資訊與下載其圖片
+> 這裡以 Page 模式為演示範例，以指定的頁數搜尋 Baseball 版上匹配的文章資訊與下載其圖片
 ### 執行畫面
-![alt text](https://i.imgur.com/geyplre.gif)
+>如果該篇文章不存在任何圖片的連結，Log 輸出會以 Error 顯示該文章並不存在圖片
 
-### 執行結果
-![alt text](https://imgur.com/ke5AH0Z.png)
+![alt text](https://imgur.com/L2RsFCq.png)
+![alt text](https://imgur.com/3l1oELp.png)
+![alt text](https://imgur.com/IE3E448.png)
+![alt text](https://imgur.com/JvR9avX.png)
 
 ### 輸出資料夾
-![alt text](https://imgur.com/zNsqrJl.png)
-![alt text](https://imgur.com/67Rv9iT.png)
+![alt text](https://imgur.com/t8ZjdBn.png)
+![alt text](https://imgur.com/6OMBD2Q.png)
 
 ### 輸出 csv
-![alt text](https://imgur.com/6Rm1893.png)
-![alt text](https://imgur.com/5aUSqEM.png)
+![alt text](https://imgur.com/guPk2ga.png)
+![alt text](https://imgur.com/kePLULX.png)
+![alt text](https://imgur.com/NMVUpNF.png)
 
 # 執行環境
 * Python 3.7.6
