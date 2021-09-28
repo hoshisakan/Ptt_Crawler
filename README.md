@@ -1,6 +1,6 @@
 # Ptt_Crawler
 ## 結合 BeautifulSoup4 與 requests 之 Python 套件撈取 ptt 文章與下載其圖片
-![alt text](https://imgur.com/geyplre.gif)
+![alt text](https://i.imgur.com/geyplre.gif)
 
 ## 教學
 ### 套件安裝
@@ -127,7 +127,7 @@ pyinstaller.exe --specpath ./execute/ --distpath ./execute/dist --workpath ./exe
 
 > 這裡以 Page 模式為演示範例，以關鍵字搜尋 Beauty 版上匹配的文章資訊與下載其圖片
 ### 執行畫面
-![alt text](https://imgur.com/geyplre.gif)
+![alt text](https://i.imgur.com/geyplre.gif)
 
 ### 執行結果
 ![alt text](https://imgur.com/ke5AH0Z.png)
