@@ -21,6 +21,9 @@ Base_URL=Ptt 文章的網址
 Allow_Imgage_Download=是否允許下載圖片
 Article_Title_Filter=過濾不想看到的文章標題
 Article_Img_Type_Filter=過濾不想下載的圖片格式
+Article_Img_Type_Filter_Allow=是否啟用圖片格式過濾
+# 僅適用於 Keyword 模式
+Page_Search_Over_Limit=是否關閉頁面搜尋的限制
 ```
 範例如下
 
@@ -30,6 +33,9 @@ Base_URL=https://www.ptt.cc/bbs/Beauty/index.html
 Allow_Imgage_Download=YES
 Article_Title_Filter=帥哥|公告|大尺碼|肉特|選情報導|整理
 Article_Img_Type_Filter=.gif
+Article_Img_Type_Filter_Allow=YES
+# 僅適用於 Keyword 模式
+Page_Search_Over_Limit=YES
 ```
 
 #### 第二部分

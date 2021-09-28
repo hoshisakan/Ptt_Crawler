@@ -56,12 +56,14 @@ class PttInfoObtain:
             search_page_count: ptt article search page count, default search 1 page
             allow_img_download: if set True will be download ptt image to local host
             article_title_filter: filter article title ignore no need article
-            article_img_type_filter: filter article imgage format, example: .jpg|.png
+            article_img_type_filter: filter article image format, example: .jpg|.png
+            article_img_type_filter_allow: allow enable article image format filter
         """
         self.__base_url = crawler['base_url']
         self.__allow_img_download = crawler.get('allow_img_download', False)
         self.__article_title_filter = crawler['article_title_filter']
         self.__article_img_type_filter = crawler['article_img_type_filter']
+        self.__article_img_type_filter_allow = crawler['article_img_type_filter_allow']
         self.__article_type = crawler['article_type']
         self.__info_columns = ['title', 'url', 'push_count', 'author', 'date', 'search_page']
 
@@ -112,7 +114,7 @@ class PttInfoObtain:
                                     filename = one_of_image_url.split('/')[-1]
                                     logger.debug(f"Image real url is: {one_of_image_url}, filename is: {filename}")
                                 save_path = os.path.join(output_path, filename)
-                                if self.__check_include_match_items(check_string=one_of_image_url, pattern=self.__article_img_type_filter) is None:
+                                if self.__article_img_type_filter_allow is False or self.__check_include_match_items(check_string=one_of_image_url, pattern=self.__article_img_type_filter) is None:
                                     image_related_params_list.extend([(one_of_image_url, save_path)])
                                 else:
                                     logger.warning(f'The {filename} no match will be ignore.')
@@ -234,7 +236,7 @@ class PttInfoObtain:
             logger.error(HandleException.show_exp_detail_message(e))
         return result
 
-    def ptt_scrape_by_keyword(self, keyword=None, search_page_limit=1):
+    def ptt_scrape_by_keyword(self, keyword=None, search_page_limit=1, page_search_over_limit=False):
         info = []
         result = {
             'json_rows': '',
@@ -342,7 +344,7 @@ class PttInfoObtain:
                     downloader.run()
                 # logger.warning(current_page_article_title)
                 current_page_count += 1
-                if current_page_count == search_page_limit or is_last_page is True or any([True for one_of_title in current_page_article_title if one_of_title.find(keyword) != -1]) is False:
+                if page_search_over_limit is False and current_page_count == search_page_limit or is_last_page is True or any([True for one_of_title in current_page_article_title if one_of_title.find(keyword) != -1]) is False:
                     logger.info(f'Not found keyword {keyword} info or page has been last page.')
                     current_page_article_image_related.clear()
                     current_page_article_title.clear()
@@ -518,12 +520,16 @@ def init_global():
     Init.base_url = config.get("Settings", "Base_URL", fallback="https://www.ptt.cc/bbs/Baseball/index.html")
     Init.article_search_keyword = config.get("Settings", "Article_Search_Keyword", fallback="測試")
     Init.article_search_page_limit = int(config.get("Settings", "Article_Search_Page_Limit", fallback="1"))
+    temp_page_search_over_limit = config.get("Settings", "Page_Search_Over_Limit", fallback='NO')
+    Init.page_search_over_limit = False if not temp_page_search_over_limit or temp_page_search_over_limit.upper() == 'NO' else True
     Init.article_target_date = config.get("Settings", "Article_Target_Date", fallback=DT.get_date_no_year())
     temp_allow_image_download = config.get("Settings", "Allow_Imgage_Download", fallback='NO')
     Init.allow_img_download = False if not temp_allow_image_download or temp_allow_image_download.upper() == 'NO' else True
     Init.action_mode_by = config.get("Settings", "Action_Mode_By", fallback="Page")
     Init.article_title_filter = config.get("Settings", "Article_Title_Filter", fallback="帥哥|公告|大尺碼|肉特|選情報導|整理")
     Init.article_img_type_filter = config.get("Settings", "Article_Img_Type_Filter", fallback=".gif")
+    temp_article_img_type_filter_allow = config.get("Settings", "Article_Img_Type_Filter_Allow", fallback='YES')
+    Init.article_img_type_filter_allow = False if not temp_article_img_type_filter_allow or temp_article_img_type_filter_allow.upper() == 'NO' else True
 
 def run_job():
     result = []
@@ -537,6 +543,7 @@ def run_job():
         allow_img_download=Init.allow_img_download,
         article_title_filter=Init.article_title_filter,
         article_img_type_filter=Init.article_img_type_filter,
+        article_img_type_filter_allow=Init.article_img_type_filter_allow,
         article_type=article_type
     )
 
@@ -544,8 +551,12 @@ def run_job():
         logger.debug(f'Crawler targert url is: {Init.base_url}\ntarget date is: {Init.article_target_date}')
         result = crawler.ptt_scrape_by_date(Init.article_target_date)
     elif Init.action_mode_by == 'Keyword' or Init.action_mode_by == 'keyword':
-        logger.debug(f'Crawler targert url is: {Init.base_url}\nkeyword is: {Init.article_search_keyword}\nsearch page limit is: {Init.article_search_page_limit}')
-        result = crawler.ptt_scrape_by_keyword(keyword=Init.article_search_keyword, search_page_limit=Init.article_search_page_limit)
+        logger.debug(f'Crawler targert url is: {Init.base_url}\nkeyword is: {Init.article_search_keyword}\nsearch page limit is: {Init.article_search_page_limit}\nover search page limit is: {Init.page_search_over_limit}')
+        result = crawler.ptt_scrape_by_keyword(
+            keyword=Init.article_search_keyword,
+            search_page_limit=Init.article_search_page_limit,
+            page_search_over_limit=Init.page_search_over_limit
+        )
     elif Init.action_mode_by == 'Page' or Init.action_mode_by == 'page':
         logger.debug(f'Crawler targert url is: {Init.base_url}\nsearch page limit is: {Init.article_search_page_limit}')
         result = crawler.ptt_scrape_by_page_count(Init.article_search_page_limit)
@@ -553,9 +564,9 @@ def run_job():
     if 'json_rows' in result and result['json_rows']:
         # write_iterator_to_log(result['json_rows'])
         logger.info(result['task_mark'])
-        logger.info(len(result['json_rows']))
         dataframe = pd.DataFrame(result['json_rows'])
         logger.debug(dataframe)
+        logger.info(f"Article total is: {len(result['json_rows'])}")
         output_path = f'{Init.output_path}\\csv\\{article_type}'
         if not os.path.exists(output_path):
             os.makedirs(output_path)
