@@ -1,7 +1,5 @@
 pandas
 beautifulsoup4
-selenium
 loguru
 pyinstaller
-msedge.selenium_tools
 requests

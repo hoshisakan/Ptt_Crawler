@@ -6,7 +6,6 @@
 ### 套件安裝
 需要的套件已經包在 requirements.txt 的文字檔中，將此檔案放入專案路徑中，然後在終端機輸入以下指令即可
 > 安裝套件之前請先確認你的環境有安裝 [Python 3.7.6](https://www.python.org/downloads/release/python-376/)
-> msedge.selenium_tools 可依據個人需求決定是否安裝，如果你偏好使用 edge 的瀏覽器，則需要安裝此套件
 ```
 pip install -r requirements.txt
 ```
