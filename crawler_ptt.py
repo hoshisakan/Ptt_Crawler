@@ -14,7 +14,7 @@ import configparser
 
 
 logger = Loggings()
-output_dir_article_type = ''
+output_dir_board_name = ''
 
 def write_iterator_to_log(iterator):
     [logger.info(read_iterator_info) for read_iterator_info in iterator]
@@ -53,18 +53,22 @@ class PttInfoDownload:
 class PttInfoObtain:
     def __init__(self, ** crawler):
         """
-            search_page_count: ptt article search page count, default search 1 page
+            base_url: ptt board url
+            board_name: search ptt board name
             allow_img_download: if set True will be download ptt image to local host
             article_title_filter: filter article title ignore no need article
+            allow_article_title_filter: filter article title allow
             article_img_type_filter: filter article image format, example: .jpg|.png
             article_img_type_filter_allow: allow enable article image format filter
         """
-        self.__base_url = crawler['base_url']
+        self.__board_name = crawler.get('board_name', None)
+        self.__base_url = crawler.get('base_url', None) if self.__board_name is None else f'https://www.ptt.cc/bbs/{self.__board_name}/index.html'
         self.__allow_img_download = crawler.get('allow_img_download', False)
         self.__article_title_filter = crawler['article_title_filter']
+        self.__allow_article_title_filter = crawler['allow_article_title_filter']
         self.__article_img_type_filter = crawler['article_img_type_filter']
         self.__article_img_type_filter_allow = crawler['article_img_type_filter_allow']
-        self.__article_type = crawler['article_type']
+        self.__board_name = crawler['board_name']
         self.__info_columns = ['title', 'url', 'push_count', 'author', 'date', 'search_page']
 
     def __check_include_match_items(self, check_string=None, pattern=None):
@@ -89,7 +93,7 @@ class PttInfoObtain:
                     logger.error(f"The article {article['title']} of link {article['url']} not found match image url")
                 else:
                     article_title = re.sub('[\\\\/:*?"<>!|.]', '', article['title'])
-                    output_path = f"{Init.output_path}\\img\\{self.__article_type}\\All\\{article['date']}\\{article_title}" if 'keyword' not in article or article['keyword'] is None or not article['keyword'] else f"{Init.output_path}/img/{self.__article_type}/{article['keyword']}/{article['date']}/{article_title}"
+                    output_path = f"{Init.output_path}\\img\\{self.__board_name}\\All\\{article['date']}\\{article_title}" if 'keyword' not in article or article['keyword'] is None or not article['keyword'] else f"{Init.output_path}/img/{self.__board_name}/{article['keyword']}/{article['date']}/{article_title}"
                     check_dir_exist, dir_file_count = self.__check_exists_and_file_count(output_path)
                     logger.debug(f'The path {output_path} is exists? {check_dir_exist}, that directory file count is: {dir_file_count}')
 
@@ -124,7 +128,7 @@ class PttInfoObtain:
             logger.error(HandleException.show_exp_detail_message(e))
         return image_related_params_list
 
-    def ptt_scrape_by_page_count(self, search_page_count=1):
+    def __ptt_scrape_by_page_count(self, search_page_count=1):
         info = []
         result = {
             'json_rows': '',
@@ -147,10 +151,10 @@ class PttInfoObtain:
 
                     article_topbar_div_tag = topbar_container_div_tag.find('div', {'id': 'topbar', 'class': 'bbs-content'})
                     article_topbar_a_tag = article_topbar_div_tag.find_all('a')[1] if article_topbar_div_tag is not None else None
-                    article_type = article_topbar_a_tag.getText().strip().replace('看板 ', '') if article_topbar_a_tag is not None else 'Unknown'
+                    board_name = article_topbar_a_tag.getText().strip().replace('看板 ', '') if article_topbar_a_tag is not None else 'Unknown'
 
                     if not result['task_mark']:
-                        result['task_mark'] = article_type
+                        result['task_mark'] = board_name
 
                     logger.info(f"Task mark the article type is: {result['task_mark']}")
 
@@ -174,8 +178,13 @@ class PttInfoObtain:
                         title_div_tag = one_of_article.find('div', {'class': 'title'})
                         title_and_link_a_tag = title_div_tag.find('a') if title_div_tag is not None else None
                         title = title_and_link_a_tag.getText().strip() if title_and_link_a_tag is not None else ''
-            
-                        if title and self.__check_include_match_items(check_string=title, pattern=self.__article_title_filter) is None:
+                        check_title_is_empty = any(title)
+                        logger.debug(f'Allow filter article title: {self.__allow_article_title_filter}')
+                        logger.warning(f'The article title is: {title}')
+                        logger.warning(f'The article title is empty?: {check_title_is_empty}')
+                        logger.warning(f'The article title length?: {len(title)}')
+
+                        if check_title_is_empty and self.__allow_article_title_filter is False or check_title_is_empty and self.__check_include_match_items(check_string=title, pattern=self.__article_title_filter) is None:
                             # logger.info(f'Obtain article title is: {title}')
                             link = "https://www.ptt.cc" + title_and_link_a_tag['href'] if title_and_link_a_tag is not None else ''
                             push_count_div_tag = one_of_article.find('div', {'nrec'})
@@ -236,7 +245,7 @@ class PttInfoObtain:
             logger.error(HandleException.show_exp_detail_message(e))
         return result
 
-    def ptt_scrape_by_keyword(self, keyword=None, search_page_limit=1, page_search_over_limit=False):
+    def __ptt_scrape_by_keyword(self, keyword=None, search_page_limit=1, page_search_over_limit=False):
         info = []
         result = {
             'json_rows': '',
@@ -261,10 +270,10 @@ class PttInfoObtain:
 
                     article_topbar_div_tag = topbar_container_div_tag.find('div', {'id': 'topbar', 'class': 'bbs-content'})
                     article_topbar_a_tag = article_topbar_div_tag.find_all('a')[1] if article_topbar_div_tag is not None else None
-                    article_type = article_topbar_a_tag.getText().strip().replace('看板 ', '') if article_topbar_a_tag is not None else 'Unknown'
+                    board_name = article_topbar_a_tag.getText().strip().replace('看板 ', '') if article_topbar_a_tag is not None else 'Unknown'
 
                     if not result['task_mark']:
-                        result['task_mark'] = article_type
+                        result['task_mark'] = board_name
 
                     logger.info(f"Task mark the article type is: {result['task_mark']}")
 
@@ -290,8 +299,13 @@ class PttInfoObtain:
                         title_div_tag = one_of_article.find('div', {'class': 'title'})
                         title_and_link_a_tag = title_div_tag.find('a') if title_div_tag is not None else None
                         title = title_and_link_a_tag.getText().strip().replace(u'\u3000', u'') if title_and_link_a_tag is not None else ''
-            
-                        if title and self.__check_include_match_items(check_string=title, pattern=self.__article_title_filter) is None:
+                        check_title_is_empty = any(title)
+                        logger.debug(f'Allow filter article title: {self.__allow_article_title_filter}')
+                        logger.warning(f'The article title is: {title}')
+                        logger.warning(f'The article title is empty?: {check_title_is_empty}')
+                        logger.warning(f'The article title length?: {len(title)}')
+
+                        if check_title_is_empty and self.__allow_article_title_filter is False or check_title_is_empty and self.__check_include_match_items(check_string=title, pattern=self.__article_title_filter) is None:
                             # logger.info(f'Obtain article title is: {title}')
                             link = "https://www.ptt.cc" + title_and_link_a_tag['href'] if title_and_link_a_tag is not None else ''
                             push_count_div_tag = one_of_article.find('div', {'nrec'})
@@ -359,7 +373,7 @@ class PttInfoObtain:
             logger.error(HandleException.show_exp_detail_message(e))
         return result
 
-    def ptt_scrape_by_date(self, target_date=None):
+    def __ptt_scrape_by_date(self, target_date=None):
         info = []
         result = {
             'json_rows': '',
@@ -391,10 +405,10 @@ class PttInfoObtain:
 
                     article_topbar_div_tag = topbar_container_div_tag.find('div', {'id': 'topbar', 'class': 'bbs-content'})
                     article_topbar_a_tag = article_topbar_div_tag.find_all('a')[1] if article_topbar_div_tag is not None else None
-                    article_type = article_topbar_a_tag.getText().strip().replace('看板 ', '') if article_topbar_a_tag is not None else 'Unknown'
+                    board_name = article_topbar_a_tag.getText().strip().replace('看板 ', '') if article_topbar_a_tag is not None else 'Unknown'
 
                     if not result['task_mark']:
-                        result['task_mark'] = article_type
+                        result['task_mark'] = board_name
 
                     logger.info(f"Task mark the article type is: {result['task_mark']}")
 
@@ -412,14 +426,19 @@ class PttInfoObtain:
                         is_last_page = True
                     else:
                         full_url = "https://www.ptt.cc/" + go_back_a_tag[0]['href']
-
+                    
                     for index, one_of_article in enumerate(all_article_div_tag, 1):
                         # logger.info(f'Staring get the {index} article')
                         title_div_tag = one_of_article.find('div', {'class': 'title'})
                         title_and_link_a_tag = title_div_tag.find('a') if title_div_tag is not None else None
                         title = title_and_link_a_tag.getText().strip() if title_and_link_a_tag is not None else ''
-            
-                        if title and self.__check_include_match_items(check_string=title, pattern=self.__article_title_filter) is None:
+                        check_title_is_empty = any(title)
+                        logger.debug(f'Allow filter article title: {self.__allow_article_title_filter}')
+                        logger.warning(f'The article title is: {title}')
+                        logger.warning(f'The article title is empty?: {check_title_is_empty}')
+                        logger.warning(f'The article title length?: {len(title)}')
+
+                        if check_title_is_empty and self.__allow_article_title_filter is False or check_title_is_empty and self.__check_include_match_items(check_string=title, pattern=self.__article_title_filter) is None:
                             # logger.info(f'Obtain article title is: {title}')
                             link = "https://www.ptt.cc" + title_and_link_a_tag['href'] if title_and_link_a_tag is not None else ''
                             push_count_div_tag = one_of_article.find('div', {'nrec'})
@@ -502,6 +521,40 @@ class PttInfoObtain:
             logger.error(HandleException.show_exp_detail_message(e))
         return result
 
+    def scrape(self):
+        result = []
+        if Init.action_mode_by == 'Date' or Init.action_mode_by == 'date':
+            logger.debug(f'Crawler targert url is: {Init.base_url}\ntarget date is: {Init.article_target_date}')
+            result = self.__ptt_scrape_by_date(Init.article_target_date)
+        elif Init.action_mode_by == 'Keyword' or Init.action_mode_by == 'keyword':
+            logger.debug(f'Crawler targert url is: {Init.base_url}\nkeyword is: {Init.article_search_keyword}\nsearch page limit is: {Init.article_search_page_limit}\nover search page limit is: {Init.page_search_over_limit}')
+            result = self.__ptt_scrape_by_keyword(
+                keyword=Init.article_search_keyword,
+                search_page_limit=Init.article_search_page_limit,
+                page_search_over_limit=Init.page_search_over_limit
+            )
+        elif Init.action_mode_by == 'Page' or Init.action_mode_by == 'page':
+            logger.debug(f'Crawler targert url is: {Init.base_url}\nsearch page limit is: {Init.article_search_page_limit}')
+            result = self.__ptt_scrape_by_page_count(Init.article_search_page_limit)
+
+        if 'json_rows' in result and result['json_rows']:
+        # write_iterator_to_log(result['json_rows'])
+            logger.info(result['task_mark'])
+            dataframe = pd.DataFrame(result['json_rows'])
+            logger.debug(dataframe)
+            logger.info(f"Article total is: {len(result['json_rows'])}")
+            if self.__board_name is None:
+                self.__board_name = Init.base_url.split('/')[4] if Init.base_url else 'Unknown'
+
+            output_path = f'{Init.output_path}\\csv\\{self.__board_name}'
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            dataframe.to_csv(
+                f"{output_path}\\{DT.get_date('_')}_{createRandomCode()}.csv",
+                encoding='utf-8-sig',index=False)
+        else:
+            logger.error('Task execute failed.')
+
 def timer(func):
     def time_count():
         exc_start_time = DT.get_current_datetime()
@@ -523,58 +576,29 @@ def init_global():
     temp_page_search_over_limit = config.get("Settings", "Page_Search_Over_Limit", fallback='NO')
     Init.page_search_over_limit = False if not temp_page_search_over_limit or temp_page_search_over_limit.upper() == 'NO' else True
     Init.article_target_date = config.get("Settings", "Article_Target_Date", fallback=DT.get_date_no_year())
-    temp_allow_image_download = config.get("Settings", "Allow_Imgage_Download", fallback='NO')
+    temp_allow_image_download = config.get("Settings", "Allow_Image_Download", fallback='NO')
     Init.allow_img_download = False if not temp_allow_image_download or temp_allow_image_download.upper() == 'NO' else True
     Init.action_mode_by = config.get("Settings", "Action_Mode_By", fallback="Page")
     Init.article_title_filter = config.get("Settings", "Article_Title_Filter", fallback="帥哥|公告|大尺碼|肉特|選情報導|整理")
     Init.article_img_type_filter = config.get("Settings", "Article_Img_Type_Filter", fallback=".gif")
     temp_article_img_type_filter_allow = config.get("Settings", "Article_Img_Type_Filter_Allow", fallback='YES')
     Init.article_img_type_filter_allow = False if not temp_article_img_type_filter_allow or temp_article_img_type_filter_allow.upper() == 'NO' else True
+    Init.board_name = config.get("Settings", "Board_Name", fallback=None)
+    temp_allow_article_title_filter = config.get("Settings", "Allow_Article_Title_Filter", fallback='NO')
+    Init.allow_article_title_filter = False if not temp_allow_article_title_filter or temp_allow_article_title_filter.upper() == 'NO' else True
 
 def run_job():
-    result = []
-
     init_global()
-
-    article_type = Init.base_url.split('/')[4] if Init.base_url else 'Unknown'
-
     crawler = PttInfoObtain(
+        board_name=Init.board_name,
         base_url=Init.base_url,
         allow_img_download=Init.allow_img_download,
         article_title_filter=Init.article_title_filter,
+        allow_article_title_filter=Init.allow_article_title_filter,
         article_img_type_filter=Init.article_img_type_filter,
         article_img_type_filter_allow=Init.article_img_type_filter_allow,
-        article_type=article_type
     )
-
-    if Init.action_mode_by == 'Date' or Init.action_mode_by == 'date':
-        logger.debug(f'Crawler targert url is: {Init.base_url}\ntarget date is: {Init.article_target_date}')
-        result = crawler.ptt_scrape_by_date(Init.article_target_date)
-    elif Init.action_mode_by == 'Keyword' or Init.action_mode_by == 'keyword':
-        logger.debug(f'Crawler targert url is: {Init.base_url}\nkeyword is: {Init.article_search_keyword}\nsearch page limit is: {Init.article_search_page_limit}\nover search page limit is: {Init.page_search_over_limit}')
-        result = crawler.ptt_scrape_by_keyword(
-            keyword=Init.article_search_keyword,
-            search_page_limit=Init.article_search_page_limit,
-            page_search_over_limit=Init.page_search_over_limit
-        )
-    elif Init.action_mode_by == 'Page' or Init.action_mode_by == 'page':
-        logger.debug(f'Crawler targert url is: {Init.base_url}\nsearch page limit is: {Init.article_search_page_limit}')
-        result = crawler.ptt_scrape_by_page_count(Init.article_search_page_limit)
-
-    if 'json_rows' in result and result['json_rows']:
-        # write_iterator_to_log(result['json_rows'])
-        logger.info(result['task_mark'])
-        dataframe = pd.DataFrame(result['json_rows'])
-        logger.debug(dataframe)
-        logger.info(f"Article total is: {len(result['json_rows'])}")
-        output_path = f'{Init.output_path}\\csv\\{article_type}'
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        dataframe.to_csv(
-            f"{output_path}\\{DT.get_date('_')}_{createRandomCode()}.csv",
-            encoding='utf-8-sig',index=False)
-    else:
-        logger.error('Task execute failed.')
+    crawler.scrape()
 
 
 @timer
